@@ -86,7 +86,8 @@ def predict_test(clf, features):
 
     print("Predicting on test data..")
     start = time()
-    y_pred = clf.predict(features)
+    #y_pred = clf.predict(features)
+    y_pred = clf.predict_proba(features)
     end = time()
     print("Predictions made in " + str(end-start) + " seconds")
     return y_pred
@@ -105,10 +106,11 @@ def prepare_data(data):
 
     print("Preparing data")
     y_data = data['is_churn']
-    x_data = data.drop(['is_churn'],1).drop(['msno'],1)
+    x_data = data.drop(['is_churn'],1).drop(['msno'],1).drop(['num_25'],1).drop(['num_50'],1).drop(['num_75'],1).drop(['num_985'],1)
+    x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1)
 
     x_data1, x_test, y_data1, y_test = train_test_split(x_data, y_data,
-                                                    test_size = 100000,
+                                                    test_size = 3000000,
                                                     random_state = 2,
                                                     stratify = y_data)
     print("Prepared data!")
@@ -148,9 +150,10 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
 
         train_data = read_data("data/train_compiled.csv")
         #split data into train and val sets
+        print(train_data)
         x_train, y_train, x_test, y_test = prepare_data(train_data)
         #make classifier
-        clfa = MLPClassifier(solver = 'adam', alpha = 0.005, hidden_layer_sizes=(100, 50, 25, 10), random_state=1, warm_start=True)
+        clfa = MLPClassifier(solver = 'adam', alpha = 0.001, hidden_layer_sizes= (200, 100, 50, 10), warm_start=True, verbose=True)
         #training
         train_classifier(clfa, x_train, y_train)
         #save classifer
@@ -160,14 +163,20 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
 
     elif cmd == 2:
         clf = load_clf("MLPClassifier")
-        train_data = read_data("data/train_compiled.csv")
+        print(clf.classes_)
+        #train_data = read_data("data/train_compiled.csv")
         test_data = read_data("data/test_compiled.csv")
-        show_train_data_stats(train_data)
-        show_test_data_stats(test_data)
-        print(test_data)
-#        x_data = test_data.drop(['is_churn'],1).drop(['msno'],1)
-#        results = predict_test(clf, x_data)
-#        print(len(results))
+        #show_train_data_stats(train_data)
+        #show_test_data_stats(test_data)
+        #print(test_data)
+        msno = test_data['msno']
+        x_data = test_data.drop(['is_churn'],1).drop(['msno'],1).drop(['num_25'],1).drop(['num_50'],1).drop(['num_75'],1).drop(['num_985'],1)
+        x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1)
+        results = predict_test(clf, x_data)
+        file1 = open("data/results.txt", 'w')
+        file1.write(str(results.tolist()))
+        #msno.to_csv("data/results.csv")
+        print(results)
 
     else:
         print("No valid commands")
