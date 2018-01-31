@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import sys
 from sklearn.metrics import f1_score
 from sklearn.cross_validation import train_test_split
 from sklearn.neural_network import MLPClassifier
@@ -8,6 +9,7 @@ import pickle
 
 def read_data(name):
     frames = pd.read_csv(name)
+    print("Data successfully read!")
     return frames
 
 def show_train_data_stats(data):
@@ -27,8 +29,8 @@ def show_test_data_stats(data):
     n_features = data.shape[1] - 1
 
 
-    print("\nTrain Data:")
-    print("             Total number of train data: " + str(n_train))
+    print("\nTest Data:")
+    print("             Total number of test data: " + str(n_train))
     print("             Number of features: " + str(n_features))
     print("             " + (str(data.dtypes.index[1:n_features+1])))
 
@@ -74,6 +76,21 @@ def save_clf(clf):
         pickle.dump(clf, fid)
     print(clf.__class__.__name__ + " model saved!")
 
+def load_clf(clf):
+    with open( clf + '.pkl', 'rb') as fid:
+        loaded_clf = pickle.load(fid)
+    print(loaded_clf.__class__.__name__ + " model loaded!")
+    return loaded_clf
+
+def predict_test(clf, features):
+
+    print("Predicting on test data..")
+    start = time()
+    y_pred = clf.predict(features)
+    end = time()
+    print("Predictions made in " + str(end-start) + " seconds")
+    return y_pred
+
 def predict_outcome(clf, features, target):
 
     start = time()
@@ -103,36 +120,54 @@ def merge_data(data, dfmerge):
     print(np.where(pd.isnull(dfnew)))
     return dfnew
 
-def create_compiled_data(data, transaction, log):
+def create_compiled_data(data, transaction, log, name):
     tmp = merge_data(data, transaction)
     tmp = merge_data(tmp, log)
-    tmp.to_csv("data/test_compiled.csv")
+    tmp.to_csv("data/" + name + ".csv")
 
-if __name__ == "__main__":      #907471 unique test points
+if __name__ == "__main__":      #907471 unique test points, 1103895 unique user logs ids, 1197050 trans
 
-    #train_data = read_data("data/tmp.csv")
-    test_data = read_data("data/sample_submission_v2.csv")
-    transaction_data = read_data("data/transactions_v2.csv")
-    log_data = read_data("data/user_logs_v2.csv")
-    #member_data = read_data("data/members_v3.csv")
-    create_compiled_data(test_data, transaction_data, log_data)
+    cmd = int(sys.argv[1])
+    if cmd == 0:            #create compiled data
 
-
-'''
-    #split data into train and val sets
-    x_train, y_train, x_test, y_test = prepare_data(train_data)
-    #make classifier
-    clfa = MLPClassifier(solver = 'adam', alpha = 1.2, hidden_layer_sizes=(100, 50, 25, 10), random_state=1, warm_start=True)
-
-    #training
-    train_classifier(clfa, x_train, y_train)
-    #save classifer
-    save_clf(clfa)
-    #test/predict
-    predict_outcome(clfa, x_test, y_test)
+        train_data = read_data("data/train_v2.csv")
+        test_data = read_data("data/sample_submission_v2.csv")   #already normalized
+        transaction_data = read_data("data/transactions_v2.csv") #already normalized
+        log_data = read_data("data/user_logs_v2.csv")
+        #member_data = read_data("data/members_v3.csv")  #not using members data
+        show_train_data_stats(train_data)
+        show_test_data_stats(test_data)
+        show_transaction_data_stats(transaction_data)
+        show_user_data_stats(log_data)
+        #show_member_data_stats(member_data)
+        create_compiled_data(train_data, transaction_data, log_data, "train_compiled")
+        create_compiled_data(test_data, transaction_data, log_data, "test_compiled")
 
 
-    show_transaction_data_stats(transaction_data)
-    show_user_data_stats(log_data)
-    show_member_data_stats(member_data)
-'''
+    elif cmd == 1:           #train
+
+        train_data = read_data("data/train_compiled.csv")
+        #split data into train and val sets
+        x_train, y_train, x_test, y_test = prepare_data(train_data)
+        #make classifier
+        clfa = MLPClassifier(solver = 'adam', alpha = 0.005, hidden_layer_sizes=(100, 50, 25, 10), random_state=1, warm_start=True)
+        #training
+        train_classifier(clfa, x_train, y_train)
+        #save classifer
+        save_clf(clfa)
+        #test/predict
+        predict_outcome(clfa, x_test, y_test)
+
+    elif cmd == 2:
+        clf = load_clf("MLPClassifier")
+        train_data = read_data("data/train_compiled.csv")
+        test_data = read_data("data/test_compiled.csv")
+        show_train_data_stats(train_data)
+        show_test_data_stats(test_data)
+        print(test_data)
+#        x_data = test_data.drop(['is_churn'],1).drop(['msno'],1)
+#        results = predict_test(clf, x_data)
+#        print(len(results))
+
+    else:
+        print("No valid commands")
