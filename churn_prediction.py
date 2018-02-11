@@ -107,10 +107,10 @@ def prepare_data(data):
     print("Preparing data")
     y_data = data['is_churn']
     x_data = data.drop(['is_churn'],1).drop(['msno'],1).drop(['num_25'],1).drop(['num_50'],1).drop(['num_75'],1).drop(['num_985'],1)
-    x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1)
+    x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1).drop(['payment_method_id'],1)
 
     x_data1, x_test, y_data1, y_test = train_test_split(x_data, y_data,
-                                                    test_size = 3000000,
+                                                    test_size = 3500000,
                                                     random_state = 2,
                                                     stratify = y_data)
     print("Prepared data!")
