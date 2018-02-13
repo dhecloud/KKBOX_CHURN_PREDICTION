@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
+from matplotlib import pyplot
+from subprocess import check_output
 
 #methods
 
@@ -47,6 +50,28 @@ def show_member_data_stats(data):
     print("             Number of features: " + str(n_features))
     print("             " + (str(data.dtypes.index[1:n_features])))
 
+
+#memory reduction functions
+
+def change_datatype(df):
+    int_cols = list(df.select_dtypes(include=['int']).columns)
+    for col in int_cols:
+        if ((np.max(df[col]) <= 127) and(np.min(df[col] >= -128))):
+            df[col] = df[col].astype(np.int8)
+        elif ((np.max(df[col]) <= 32767) and(np.min(df[col] >= -32768))):
+            df[col] = df[col].astype(np.int16)
+        elif ((np.max(df[col]) <= 2147483647) and(np.min(df[col] >= -2147483648))):
+            df[col] = df[col].astype(np.int32)
+        else:
+            df[col] = df[col].astype(np.int64)
+
+def change_datatype_float(df):
+    float_cols = list(df.select_dtypes(include=['float']).columns)
+    for col in float_cols:
+        df[col] = df[col].astype(np.float32)
+
+
+'''DATA PROCESSING PART I NOOB VERSION'''
 
 #   -- user logs data processing --
 '''
@@ -139,5 +164,132 @@ print(len(a))
 
 
 
+
+''' ------------------------------ DATA PROCESSING PART II ------------------------------ '''
+
+''' -- transactions data -- '''
+df_transactions = read_data("kaggle/data-1/transactions_v2.csv")
+#print(df_transactions.shape)
+
+
+#memory reduction
+change_datatype(df_transactions)   
+change_datatype_float(df_transactions)
+
+#check memory usage
+'''
+mem = df_transactions.memory_usage(index=True).sum()    
+print(mem/ 1024**2,"MB")
+'''
+
+#check data types of cols
+'''
+print(df_transactions.dtypes, '\n')
+print(df_members.dtypes)
+'''
+
+#check number of cols
+'''
+length = len(df_transactions.columns)
+print(length)
+'''
+
+#new feature 'discount' to see how much discount was offered to the customer
+df_transactions['discount'] = df_transactions['plan_list_price'] - df_transactions['actual_amount_paid']
+#print(df_transactions['discount'].unique())
+
+#new featuer 'is_discount' to check whether the customer has availed any discount or not
+df_transactions['is_discount'] = df_transactions.discount.apply(lambda x: 1 if x > 0 else 0)
+#print(df_transactions['is_discount'].head())
+#print(df_transactions['is_discount'].unique())
+
+#new feature amount_per_day
+df_transactions['amt_per_day'] = df_transactions['actual_amount_paid'] / df_transactions['payment_plan_days']
+#print(df_transactions['amt_per_day'].head())
+
+date_cols = ['transaction_date', 'membership_expire_date']
+#print(df_transactions[date_cols].dtypes)
+
+for col in date_cols:
+    df_transactions[col] = pd.to_datetime(df_transactions[col], format='%Y%m%d')
+    
+#print(df_transactions.head())
+
+#new feature membership_duration in days
+df_transactions['membership_duration'] = df_transactions.membership_expire_date - df_transactions.transaction_date
+df_transactions['membership_duration'] = df_transactions['membership_duration'] / np.timedelta64(1, 'D')
+df_transactions['membership_duration'] = df_transactions['membership_duration'].astype(int)
+
+#print(df_transactions.head())
+#print(len(df_transactions.columns), "columns")
+
+change_datatype(df_transactions)
+change_datatype_float(df_transactions)
+#mem = df_transactions.memory_usage(index=True).sum()    
+#print(mem/ 1024**2,"MB")
+#print(df_transactions.head())
+
+
+
+''' -- members data -- '''
+df_members = read_data("kaggle/data-1/members_v3.csv")  
+
+#memory reduction
+change_datatype(df_members)
+change_datatype_float(df_members)
+#print(df_members.head())
+#print(len(df_members.columns), "columns")
+
+#check memory usage
+'''
+mem = df_members.memory_usage(index=True).sum()    
+print(mem/ 1024**2,"MB")
+mem = df_members.memory_usage(index=True).sum()
+print(mem/ 1024**2,"MB")
+'''
+
+#check data types of cols
+'''
+print(df_members.dtypes, '\n')
+print(df_members.dtypes)
+'''
+
+#change date format
+
+date_col = ['registration_init_time']
+
+for col in date_col:
+    df_members[col] = pd.to_datetime(df_members[col], format='%Y%m%d')
+
+#memory reduction again
+change_datatype(df_members)
+change_datatype_float(df_members)
+#mem = df_members.memory_usage(index=True).sum()    
+#print(mem/ 1024**2,"MB")
+#print(df_members.head())
+
+
+
+''' --  dataframes merging -- '''
+df_comb = pd.merge(df_transactions, df_members, on='msno', how='inner')
+
+#deleting the dataframes to save memory
+del df_transactions
+del df_members
+'''
+print(df_comb.head())
+mem = df_comb.memory_usage(index=True).sum()
+print("Memory consumed by training set  :   {} MB" .format(mem/ 1024**2))
+'''
+
+#new feature to see whether mebers have auto renewed and not cancelled at the same time, auto_renew = 1 and is_cancel = 0
+df_comb['autorenew_&_not_cancel'] = ((df_comb.is_auto_renew == 1) == (df_comb.is_cancel == 0)).astype(np.int8)
+#print(df_comb['autorenew_&_not_cancel'].unique())
+
+#new feature to predict possible churning if auto_renew = 0 and is_cancel = 1
+df_comb['notAutorenew_&_cancel'] = ((df_comb.is_auto_renew == 0) == (df_comb.is_cancel == 1)).astype(np.int8)
+#print(df_comb['notAutorenew_&_cancel'].unique())
+
+df_comb.to_csv("kaggle/data-1/df.comb.csv", index=False)
 
 
