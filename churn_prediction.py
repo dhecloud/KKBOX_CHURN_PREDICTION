@@ -107,8 +107,6 @@ def prepare_data(data):
     print("Preparing data")
     #data = data.groupby('msno', as_index=False).mean()
     y_data = data['is_churn']
-    #x_data = data.drop(['is_churn'],1).drop(['msno'],1).drop(['num_25'],1).drop(['num_50'],1).drop(['num_75'],1).drop(['num_985'],1)
-    #x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1).drop(['payment_method_id'],1)
     x_data = data.drop(['is_churn'],1).drop(['msno'],1)
     x_data1, x_test, y_data1, y_test = train_test_split(x_data, y_data,
                                                     test_size =  82000,
@@ -166,18 +164,16 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         clf = load_clf("MLPClassifier")
         print(clf.classes_)
         #train_data = read_data("data/train_compiled.csv")
-        test_data = read_data("data/test_final.csv")
+        test_data = read_data("data/testdf_comb2.csv")
         #show_train_data_stats(train_data)
         #show_test_data_stats(test_data)
-        #print(test_data)
-        msno = test_data['msno']
-        x_data = test_data.drop(['is_churn'],1).drop(['msno'],1).drop(['num_25'],1).drop(['num_50'],1).drop(['num_75'],1).drop(['num_985'],1)
-        x_data = x_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['date'],1).drop(['payment_method_id'],1)
+        resultdf = (test_data['msno']).to_frame()
+        x_data = test_data.drop(['is_churn'],1).drop(['msno'],1)
         results = predict_test(clf, x_data)
-        file1 = open("data/results.txt", 'w')
-        file1.write(str(results.tolist()))
-        #msno.to_csv("data/results.csv")
-        print(results)
-
+        new = []
+        for i in range(len(results)):
+            new.append(results[i][1])
+        resultdf['is_churn'] = pd.DataFrame({"is_churn":new})
+        resultdf.to_csv("data/results.csv", index=False)
     else:
         print("No valid commands")
