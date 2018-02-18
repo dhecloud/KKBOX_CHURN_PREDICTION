@@ -5,13 +5,13 @@ def read_data(name):
     return frames
 
 #use train_v2 or sample_submission_v2 depending on which file u wanna compile
-data = read_data("data/sample_submission_v2.csv")    
+data = read_data("data/train_v2.csv")    
 
 
 train_data = read_data("data/df_comb.csv")
 
 #remove some unneeded columns
-train_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['gender'],1).drop(['bd'],1).drop(['registration_init_time'],1)
+train_data = train_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['gender'],1).drop(['bd'],1).drop(['registration_init_time'],1)
 
 train_data = pd.merge(train_data, data, on='msno')
 
@@ -24,4 +24,4 @@ train_data['actual_amount_paid'] = (train_data['actual_amount_paid'] - train_dat
 #aggregation
 train_data = train_data.groupby('msno', as_index=False).mean()
 
-train_data.to_csv("data/testdf_comb2.csv", index=False)
+train_data.to_csv("data/df_comb2.csv", index=False)
