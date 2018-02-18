@@ -290,6 +290,6 @@ df_comb['autorenew_&_not_cancel'] = ((df_comb.is_auto_renew == 1) == (df_comb.is
 df_comb['notAutorenew_&_cancel'] = ((df_comb.is_auto_renew == 0) == (df_comb.is_cancel == 1)).astype(np.int8)
 #print(df_comb['notAutorenew_&_cancel'].unique())
 
-df_comb.to_csv("kaggle/data-1/df.comb.csv", index=False)
+df_comb.to_csv("data/df_comb.csv", index=False)
 
 
