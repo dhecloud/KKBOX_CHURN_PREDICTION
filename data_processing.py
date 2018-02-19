@@ -70,12 +70,6 @@ def change_datatype_float(df):
     for col in float_cols:
         df[col] = df[col].astype(np.float32)
 
-def normalize(df, names):
-     for name in names:
-           df[name] = ((df[name] - df[name].mean())/df[name].std())
-     return df
-
-
 '''DATA PROCESSING PART I '''
 
 #   -- user logs data processing --
@@ -174,6 +168,22 @@ print(len(a))
 
 ''' -- transactions data -- '''
 df_transactions = read_data("data/transactions_v2.csv")
+
+date_cols = ['transaction_date', 'membership_expire_date']
+for col in date_cols:
+    df_transactions[col] = pd.to_datetime(df_transactions[col], format='%Y%m%d')
+    
+#print(df_transactions.head())
+
+#new feature membership_duration in days
+df_transactions['membership_duration'] = df_transactions.membership_expire_date - df_transactions.transaction_date
+df_transactions['membership_duration'] = df_transactions['membership_duration'] / np.timedelta64(1, 'D')
+df_transactions['membership_duration'] = df_transactions['membership_duration'].astype(int)
+
+
+df_transactions = df_transactions.drop(['transaction_date', 'membership_expire_date'],axis=1)
+
+df_transactions = df_transactions.groupby('msno', as_index=False).mean()
 #print(df_transactions.shape)
 
 
@@ -212,19 +222,6 @@ df_transactions['is_discount'] = df_transactions.discount.apply(lambda x: 1 if x
 df_transactions['amt_per_day'] = df_transactions['actual_amount_paid'] / df_transactions['payment_plan_days']
 #print(df_transactions['amt_per_day'].head())
 
-date_cols = ['transaction_date', 'membership_expire_date']
-#print(df_transactions[date_cols].dtypes)
-
-for col in date_cols:
-    df_transactions[col] = pd.to_datetime(df_transactions[col], format='%Y%m%d')
-    
-#print(df_transactions.head())
-
-#new feature membership_duration in days
-df_transactions['membership_duration'] = df_transactions.membership_expire_date - df_transactions.transaction_date
-df_transactions['membership_duration'] = df_transactions['membership_duration'] / np.timedelta64(1, 'D')
-df_transactions['membership_duration'] = df_transactions['membership_duration'].astype(int)
-
 #print(df_transactions.head())
 #print(len(df_transactions.columns), "columns")
 
@@ -238,6 +235,7 @@ change_datatype_float(df_transactions)
 
 ''' -- members data -- '''
 df_members = read_data("data/members_v3.csv")  
+df_members = df_members.groupby('msno', as_index=False).mean()
 
 #memory reduction
 change_datatype(df_members)
@@ -294,7 +292,8 @@ df_comb['autorenew_&_not_cancel'] = ((df_comb.is_auto_renew == 1) == (df_comb.is
 #new feature to predict possible churning if auto_renew = 0 and is_cancel = 1
 df_comb['notAutorenew_&_cancel'] = ((df_comb.is_auto_renew == 0) == (df_comb.is_cancel == 1)).astype(np.int8)
 #print(df_comb['notAutorenew_&_cancel'].unique())
-
+df_comb = df_comb.drop(['payment_method_id', 'is_cancel', 'bd', 'registration_init_time', 'registered_via', 'city'], axis=1)
+print(df_comb.shape)
 df_comb.to_csv("data/df_comb.csv", index=False)
 
 

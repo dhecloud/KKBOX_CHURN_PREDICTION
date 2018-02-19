@@ -152,7 +152,7 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         x_train, y_train, x_test, y_test = prepare_data(train_data)
         print(x_train.shape)
         #make classifier
-        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (20, 15, 10), verbose=True)
+        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (16, 8, 4), verbose=True)
         #training
         train_classifier(clfa, x_train, y_train)
         #save classifer

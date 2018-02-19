@@ -4,6 +4,12 @@ import seaborn as sns
 from matplotlib import pyplot
 from subprocess import check_output
 
+
+def normalize(df, names):
+    for name in names:
+        df[name] = ((df[name] - df[name].mean())/df[name].std())
+    return df
+
 def read_data(name):
     frames = pd.read_csv(name)
     print("Data successfully read!")
@@ -48,7 +54,6 @@ print(user_log.shape)
 
 comb = read_data("data/df_comb.csv")
 #remove some unneeded columns and save mem
-comb = comb.drop(['transaction_date', 'membership_expire_date', 'gender', 'bd', 'registration_init_time'],axis=1)
 comb = change_datatype(comb)   
 comb = change_datatype_float(comb)
 print(comb.shape)
@@ -58,22 +63,20 @@ print(data.shape)
 del comb
 del user_log
 
-train_data = read_data("data/sample_submission_v2.csv")
-#train_data = read_data("data/train_v2.csv")
+#train_data = read_data("data/sample_submission_v2.csv")
+train_data = read_data("data/train_v2.csv")
 print(train_data.shape)
 
 train_data = pd.merge(train_data, data, on='msno', how = 'left')
 train_data = train_data.replace(to_replace=float('inf'),value = 0)
 train_data = train_data.fillna(value=0)
 #normalization
-train_data['amt_per_day'] = (train_data['amt_per_day'] - train_data['amt_per_day'].min())/(train_data['amt_per_day'].max() - train_data['amt_per_day'].min())
-train_data['payment_plan_days'] = (train_data['payment_plan_days'] - train_data['payment_plan_days'].min())/(train_data['payment_plan_days'].max() - train_data['payment_plan_days'].min())
-train_data['plan_list_price'] = (train_data['plan_list_price'] - train_data['plan_list_price'].min())/(train_data['plan_list_price'].max() - train_data['plan_list_price'].min())
-train_data['actual_amount_paid'] = (train_data['actual_amount_paid'] - train_data['actual_amount_paid'].min())/(train_data['actual_amount_paid'].max() - train_data['actual_amount_paid'].min())
+train_data = normalize(train_data, ['amt_per_day', 'payment_plan_days','plan_list_price', 'actual_amount_paid','plan_list_price', 'payment_plan_days', 'actual_amount_paid', 'amt_per_day', 'membership_duration', 'discount'])
 
 #aggregation
 train_data = train_data.groupby('msno', as_index=False).mean()
 
 print(train_data.shape)
-train_data.to_csv("data/df_testfinal.csv", index=False)
+#train_data.to_csv("data/df_testfinal.csv", index=False)
+train_data.to_csv("data/df_trainfinal.csv", index=False)
 
