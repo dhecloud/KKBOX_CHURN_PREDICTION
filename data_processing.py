@@ -70,8 +70,13 @@ def change_datatype_float(df):
     for col in float_cols:
         df[col] = df[col].astype(np.float32)
 
+def normalize(df, names):
+     for name in names:
+           df[name] = ((df[name] - df[name].mean())/df[name].std())
+     return df
 
-'''DATA PROCESSING PART I NOOB VERSION'''
+
+'''DATA PROCESSING PART I '''
 
 #   -- user logs data processing --
 '''
@@ -165,10 +170,10 @@ print(len(a))
 
 
 
-''' ------------------------------ DATA PROCESSING PART II ------------------------------ '''
+''' ------------------------------ DATA PROCESSING PART II (not a continuation of PART I)------------------------------ '''
 
 ''' -- transactions data -- '''
-df_transactions = read_data("kaggle/data-1/transactions_v2.csv")
+df_transactions = read_data("data/transactions_v2.csv")
 #print(df_transactions.shape)
 
 
@@ -232,7 +237,7 @@ change_datatype_float(df_transactions)
 
 
 ''' -- members data -- '''
-df_members = read_data("kaggle/data-1/members_v3.csv")  
+df_members = read_data("data/members_v3.csv")  
 
 #memory reduction
 change_datatype(df_members)
@@ -271,7 +276,7 @@ change_datatype_float(df_members)
 
 
 ''' --  dataframes merging -- '''
-df_comb = pd.merge(df_transactions, df_members, on='msno', how='inner')
+df_comb = pd.merge(df_transactions, df_members, on='msno', how='outer')
 
 #deleting the dataframes to save memory
 del df_transactions

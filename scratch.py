@@ -29,6 +29,11 @@ def change_datatype_float(df):
         df[col] = df[col].astype(np.float32)
     return df
 
+def normalize(df, names):
+    for name in names:
+           df[name] = ((df[name] - df[name].mean())/df[name].std())
+    return df
+
 
 user_log = read_data("data/user_logs_v2.csv")
 user_log = user_log.drop(['date', 'num_25', 'num_50', 'num_75', 'num_985', 'num_100'], axis=1)
