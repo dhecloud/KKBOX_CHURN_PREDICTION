@@ -21,74 +21,54 @@ def change_datatype(df):
             df[col] = df[col].astype(np.int32)
         else:
             df[col] = df[col].astype(np.int64)
+    return df
 
 def change_datatype_float(df):
     float_cols = list(df.select_dtypes(include=['float']).columns)
     for col in float_cols:
         df[col] = df[col].astype(np.float32)
+    return df
 
-#use train_v2 or sample_submission_v2 depending on which file u wanna compile
-<<<<<<< HEAD
-data = read_data("data/train_v2.csv")    
-=======
-#data = read_data("data/sample_submission_v2.csv")    
->>>>>>> 893e425e018236e7c92b29d1797c235a98c51178
 
 user_log = read_data("data/user_logs_v2.csv")
+user_log = user_log.drop(['date', 'num_25', 'num_50', 'num_75', 'num_985', 'num_100'], axis=1)
+
 #memory reduction
-change_datatype(user_log)   
-change_datatype_float(user_log)
+user_log = change_datatype(user_log)   
+user_log = change_datatype_float(user_log)
 #mem = user_log.memory_usage(index=True).sum()    
 #print(mem/ 1024**2,"MB")
-user_log = user_log.drop(['date', 'num_25', 'num_50', 'num_75', 'num_985', 'num_100'], axis=1)
-#print(user_log.head())
+print(user_log.shape)
 
 
 comb = read_data("data/df_comb.csv")
-change_datatype(comb)   
-change_datatype_float(comb)
-#print(comb.shape)
+#remove some unneeded columns and save mem
+comb = comb.drop(['transaction_date', 'membership_expire_date', 'gender', 'bd', 'registration_init_time'],axis=1)
+comb = change_datatype(comb)   
+comb = change_datatype_float(comb)
+print(comb.shape)
 
-#remove some unneeded columns
-<<<<<<< HEAD
-train_data = train_data.drop(['transaction_date'],1).drop(['membership_expire_date'],1).drop(['gender'],1).drop(['bd'],1).drop(['registration_init_time'],1)
-=======
-comb = comb.drop(['transaction_date', 'membership_expire_date', 'gender', 'bd', 'registration_init_time'], axis=1)
-
-train_data = pd.merge(comb, user_log, on='msno', how='outer')
->>>>>>> 893e425e018236e7c92b29d1797c235a98c51178
-
+data = pd.merge(comb, user_log, on='msno', how = 'outer')
+print(data.shape)
 del comb
 del user_log
 
+train_data = read_data("data/sample_submission_v2.csv")
+#train_data = read_data("data/train_v2.csv")
+print(train_data.shape)
+
+train_data = pd.merge(train_data, data, on='msno', how = 'left')
+train_data = train_data.replace(to_replace=float('inf'),value = 0)
+train_data = train_data.fillna(value=0)
 #normalization
-train_data['amt_per_day'] = train_data['amt_per_day'].replace(to_replace=float('inf'),value = 0)
+train_data['amt_per_day'] = (train_data['amt_per_day'] - train_data['amt_per_day'].min())/(train_data['amt_per_day'].max() - train_data['amt_per_day'].min())
 train_data['payment_plan_days'] = (train_data['payment_plan_days'] - train_data['payment_plan_days'].min())/(train_data['payment_plan_days'].max() - train_data['payment_plan_days'].min())
 train_data['plan_list_price'] = (train_data['plan_list_price'] - train_data['plan_list_price'].min())/(train_data['plan_list_price'].max() - train_data['plan_list_price'].min())
 train_data['actual_amount_paid'] = (train_data['actual_amount_paid'] - train_data['actual_amount_paid'].min())/(train_data['actual_amount_paid'].max() - train_data['actual_amount_paid'].min())
 
 #aggregation
 train_data = train_data.groupby('msno', as_index=False).mean()
+
 print(train_data.shape)
-train_data.to_csv("data/df_train.csv", index=False)
+train_data.to_csv("data/df_testfinal.csv", index=False)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<<<<<<< HEAD
-train_data.to_csv("data/df_comb2.csv", index=False)
-=======
->>>>>>> 893e425e018236e7c92b29d1797c235a98c51178

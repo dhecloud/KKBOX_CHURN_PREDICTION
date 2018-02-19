@@ -109,7 +109,7 @@ def prepare_data(data):
     y_data = data['is_churn']
     x_data = data.drop(['is_churn'],1).drop(['msno'],1)
     x_data1, x_test, y_data1, y_test = train_test_split(x_data, y_data,
-                                                    test_size =  82000,
+                                                    test_size =  100000,
                                                     random_state = 2,
                                                     stratify = y_data)
     print("Prepared data!")
@@ -147,12 +147,12 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
 
     elif cmd == 1:           #train
 
-        train_data = read_data('data/df_comb2.csv')
+        train_data = read_data('data/df_trainfinal.csv')
         #split data into train and val sets
         x_train, y_train, x_test, y_test = prepare_data(train_data)
         print(x_train.shape)
         #make classifier
-        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (13, 9, 5), warm_start=True, verbose=True)
+        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (20, 15, 10), verbose=True)
         #training
         train_classifier(clfa, x_train, y_train)
         #save classifer
@@ -164,7 +164,7 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         clf = load_clf("MLPClassifier")
         print(clf.classes_)
         #train_data = read_data("data/train_compiled.csv")
-        test_data = read_data("data/testdf_comb2.csv")
+        test_data = read_data("data/df_testfinal.csv")
         test_data1 = read_data("data/sample_submission_v2.csv")
         print(test_data1.shape)
         #show_train_data_stats(train_data)
