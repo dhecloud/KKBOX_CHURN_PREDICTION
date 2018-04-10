@@ -56,16 +56,14 @@ comb = read_data("data/df_comb.csv")
 #remove some unneeded columns and save mem
 comb = change_datatype(comb)   
 comb = change_datatype_float(comb)
-print(comb.shape)
 
 data = pd.merge(comb, user_log, on='msno', how = 'outer')
-print(data.shape)
 del comb
 del user_log
 
-#train_data = read_data("data/sample_submission_v2.csv")
+test_data = read_data("data/sample_submission_v2.csv")
+
 train_data = read_data("data/train_v2.csv")
-print(train_data.shape)
 
 train_data = pd.merge(train_data, data, on='msno', how = 'left')
 train_data = train_data.replace(to_replace=float('inf'),value = 0)
@@ -76,7 +74,17 @@ train_data = normalize(train_data, ['amt_per_day', 'payment_plan_days','plan_lis
 #aggregation
 train_data = train_data.groupby('msno', as_index=False).mean()
 
-print(train_data.shape)
-#train_data.to_csv("data/df_testfinal.csv", index=False)
+
+test_data = pd.merge(test_data, data, on='msno', how = 'left')
+test_data = test_data.replace(to_replace=float('inf'),value = 0)
+test_data = test_data.fillna(value=0)
+#normalization
+test_data = normalize(test_data, ['amt_per_day', 'payment_plan_days','plan_list_price', 'actual_amount_paid','plan_list_price', 'payment_plan_days', 'actual_amount_paid', 'amt_per_day', 'membership_duration', 'discount'])
+
+#aggregation
+test_data = test_data.groupby('msno', as_index=False).mean()
+print(test_data.shape)
+
+test_data.to_csv("data/df_testfinal.csv", index=False)
 train_data.to_csv("data/df_trainfinal.csv", index=False)
 

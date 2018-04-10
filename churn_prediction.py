@@ -1,3 +1,4 @@
+from xgboost import XGBClassifier
 import pandas as pd
 import numpy as np
 import sys
@@ -72,12 +73,12 @@ def train_classifier(clf, x_data, y_data):
     print("Trained model in " + str(end-start) + " seconds")
 
 def save_clf(clf):
-    with open( clf.__class__.__name__ + '.pkl', 'wb') as fid:
+    with open( "model/"+clf.__class__.__name__ + '.pkl', 'wb') as fid:
         pickle.dump(clf, fid)
     print(clf.__class__.__name__ + " model saved!")
 
 def load_clf(clf):
-    with open( clf + '.pkl', 'rb') as fid:
+    with open( "model/" + clf + '.pkl', 'rb') as fid:
         loaded_clf = pickle.load(fid)
     print(loaded_clf.__class__.__name__ + " model loaded!")
     return loaded_clf
@@ -128,7 +129,21 @@ def create_compiled_data(data, transaction, log, name):
 
 if __name__ == "__main__":      #907471 unique test points, 1103895 unique user logs ids, 1197050 trans
 
-    cmd = int(sys.argv[1])
+    if (sys.argv[1]):  
+        cmd = int(sys.argv[1])
+    else:
+        print("Please use a valid command")
+    
+    try:
+        if (sys.argv[2]):
+            if (sys.argv[2] == "xgb"):
+                model = "XGBClassifier"
+            elif (sys.argv[2] == "mlp"):
+                model = "MLPClassifier"
+            else:
+                print("Please use a valid model")
+    except IndexError:
+        pass
     if cmd == 0:            #create compiled data
 
         train_data = read_data("data/train_v2.csv")
@@ -152,7 +167,7 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         x_train, y_train, x_test, y_test = prepare_data(train_data)
         print(x_train.shape)
         #make classifier
-        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (16, 8, 4), verbose=True)
+        clfa = MLPClassifier(solver = 'adam', alpha = 0.0001, hidden_layer_sizes= (15, 8, 4), verbose=True)
         #training
         train_classifier(clfa, x_train, y_train)
         #save classifer
@@ -161,14 +176,10 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         predict_outcome(clfa, x_test, y_test)
 
     elif cmd == 2:
-        clf = load_clf("MLPClassifier")
+        clf = load_clf(model)
         print(clf.classes_)
-        #train_data = read_data("data/train_compiled.csv")
         test_data = read_data("data/df_testfinal.csv")
-        test_data1 = read_data("data/sample_submission_v2.csv")
-        print(test_data1.shape)
-        #show_train_data_stats(train_data)
-        #show_test_data_stats(test_data)
+        print(test_data.shape)
         resultdf = (test_data['msno']).to_frame()
         x_data = test_data.drop(['is_churn'],1).drop(['msno'],1)
         results = predict_test(clf, x_data)
@@ -177,6 +188,29 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
             new.append(results[i][1])
         print(len(new))
         resultdf['is_churn'] = pd.DataFrame({"is_churn":new})
-        resultdf.to_csv("data/results.csv", index=False)
+        resultdf.to_csv("results/" + model + ".csv", index=False)
+    elif cmd == 3: #xgboostd
+        train_data = read_data('data/df_trainfinal.csv')
+        #split data into train and val sets
+        x_train, y_train, x_test, y_test = prepare_data(train_data)
+        print(x_train.shape)
+        #make classifier
+        clfa = XGBClassifier()
+        #training
+        train_classifier(clfa, x_train, y_train)
+        #save classifer
+        save_clf(clfa)
+        #test/predict
+        predict_outcome(clfa, x_test, y_test)
+        
+    elif cmd == 4: #ensemble, merge csv and average
+        mlp = read_data('results/MLPClassifier.csv')
+        xgb = read_data('results/XGBClassifier0.190.csv') 
+        merge = mlp
+        merge['tmp']= xgb['is_churn']
+        merge['avg'] = merge[['is_churn','tmp']].mean(axis=1)
+        merge['is_churn'] = merge['avg']
+        merge = merge.drop(['tmp','avg'], axis =1)
+        merge.to_csv('results/ensemble.csv',index=False)
     else:
         print("No valid commands")

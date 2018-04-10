@@ -276,6 +276,7 @@ change_datatype_float(df_members)
 ''' --  dataframes merging -- '''
 df_comb = pd.merge(df_transactions, df_members, on='msno', how='outer')
 
+
 #deleting the dataframes to save memory
 del df_transactions
 del df_members
@@ -293,7 +294,6 @@ df_comb['autorenew_&_not_cancel'] = ((df_comb.is_auto_renew == 1) == (df_comb.is
 df_comb['notAutorenew_&_cancel'] = ((df_comb.is_auto_renew == 0) == (df_comb.is_cancel == 1)).astype(np.int8)
 #print(df_comb['notAutorenew_&_cancel'].unique())
 df_comb = df_comb.drop(['payment_method_id', 'is_cancel', 'bd', 'registration_init_time', 'registered_via', 'city'], axis=1)
-print(df_comb.shape)
 df_comb.to_csv("data/df_comb.csv", index=False)
 
 
