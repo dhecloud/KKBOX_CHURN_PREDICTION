@@ -1,10 +1,13 @@
 from xgboost import XGBClassifier
+import lightgbm as lgb
+from catboost import CatBoostClassifier
 import pandas as pd
 import numpy as np
 import sys
 from sklearn.metrics import f1_score
 from sklearn.cross_validation import train_test_split
 from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import mean_squared_error
 from time import time
 import pickle
 
@@ -63,7 +66,7 @@ def show_member_data_stats(data):
     print("             " + (str(data.dtypes.index[1:n_features+1])))
 
 
-def train_classifier(clf, x_data, y_data):
+def train_classifier(clf, x_data, y_data, param=None):
 
     print("Training classifier..")
     start = time()
@@ -140,6 +143,10 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
                 model = "XGBClassifier"
             elif (sys.argv[2] == "mlp"):
                 model = "MLPClassifier"
+            elif (sys.argv[2] == "lgb"):
+                model = "Booster"
+            elif (sys.argv[2] == "cat"):
+                model = "CatBoostClassifier"
             else:
                 print("Please use a valid model")
     except IndexError:
@@ -160,7 +167,7 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         create_compiled_data(test_data, transaction_data, log_data, "test_compiled")
 
 
-    elif cmd == 1:           #train
+    elif cmd == 1:           #train mlp
 
         train_data = read_data('data/df_trainfinal.csv')
         #split data into train and val sets
@@ -175,7 +182,7 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         #test/predict
         predict_outcome(clfa, x_test, y_test)
 
-    elif cmd == 2:
+    elif cmd == 2: 
         clf = load_clf(model)
         print(clf.classes_)
         test_data = read_data("data/df_testfinal.csv")
@@ -190,23 +197,74 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
         resultdf['is_churn'] = pd.DataFrame({"is_churn":new})
         resultdf.to_csv("results/" + model + ".csv", index=False)
     elif cmd == 3: #xgboostd
+        params = {
+        'eta': 0.02, 
+        'max_depth': 7,
+        'objective': 'binary:logistic',
+        'eval_metric': 'logloss',
+        'seed': 100,
+        'silent': True
+    }
+        train_data = read_data('data/df_trainfinal.csv')
+        print(train_data.columns)
+        #split data into train and val sets
+        x_train, y_train, x_test, y_test = prepare_data(train_data)
+        #make classifier
+        clfa = XGBClassifier()
+        #training
+        train_classifier(clfa, x_train, y_train, params)
+        #save classifer
+        save_clf(clfa)
+        #test/predict
+        predict_outcome(clfa, x_test, y_test)
+        
+    elif cmd == 4: #catboost
         train_data = read_data('data/df_trainfinal.csv')
         #split data into train and val sets
         x_train, y_train, x_test, y_test = prepare_data(train_data)
-        print(x_train.shape)
         #make classifier
-        clfa = XGBClassifier()
+        clfa = CatBoostClassifier()
         #training
         train_classifier(clfa, x_train, y_train)
         #save classifer
         save_clf(clfa)
         #test/predict
         predict_outcome(clfa, x_test, y_test)
+    
+    elif cmd == 5: #lightgbm
+        train_data = read_data('data/df_trainfinal.csv')
+        #split data into train and val sets
+        x_train, y_train, x_test, y_test = prepare_data(train_data)
+        #make classifier
+        lgb_train = lgb.Dataset(x_train, y_train)
+        lgb_eval = lgb.Dataset(x_test, y_test)
+        #trainin
         
-    elif cmd == 4: #ensemble, merge csv and average
-        mlp = read_data('results/MLPClassifier.csv')
-        xgb = read_data('results/XGBClassifier0.190.csv') 
-        merge = mlp
+        params = {
+    'learning_rate': 0.05,
+    'application': 'binary',
+    'max_depth': 5,
+    'num_leaves': 256,
+    'verbosity': -1,
+    'metric': 'binary_logloss'
+}
+        watchlist = [(lgb_eval, 'eval'), (lgb_train, 'train')]
+        model = lgb.train(params, train_set=lgb_train, num_boost_round=240, early_stopping_rounds=50, verbose_eval=10) 
+        #save classifer
+        save_clf(gbm)
+        #test/predict
+        y_pred = gbm.predict(x_test, num_iteration=gbm.best_iteration)
+        print('The rmse of prediction is:', mean_squared_error(y_test, y_pred) ** 0.5)
+        test_data = read_data("data/df_testfinal.csv")
+        lgb_pred = model.predict(test_data)
+        test_data['is_churn'] = lgb_pred.clip(0.+1e-15, 1-1e-15)
+        testest_datat[['msno','is_churn']].to_csv('results.LGB.csv', index=False)
+        
+    elif cmd == 6: #ensemble, merge csv and average
+        #mlp = read_data('results/MLPClassifier.csv')
+        xgb = read_data('results/XGBClassifier.csv') 
+        cat =  read_data('results/CatBoostClassifier.csv') 
+        merge = cat 
         merge['tmp']= xgb['is_churn']
         merge['avg'] = merge[['is_churn','tmp']].mean(axis=1)
         merge['is_churn'] = merge['avg']
