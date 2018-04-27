@@ -249,26 +249,29 @@ if __name__ == "__main__":      #907471 unique test points, 1103895 unique user 
     'metric': 'binary_logloss'
 }
         watchlist = [(lgb_eval, 'eval'), (lgb_train, 'train')]
-        model = lgb.train(params, train_set=lgb_train, num_boost_round=240, early_stopping_rounds=50, verbose_eval=10) 
+        model = lgb.train(params, train_set=lgb_train, num_boost_round=240, verbose_eval=10) 
         #save classifer
-        save_clf(gbm)
+        save_clf(model)
         #test/predict
-        y_pred = gbm.predict(x_test, num_iteration=gbm.best_iteration)
+        y_pred = model.predict(x_test, num_iteration=model.best_iteration)
         print('The rmse of prediction is:', mean_squared_error(y_test, y_pred) ** 0.5)
         test_data = read_data("data/df_testfinal.csv")
-        lgb_pred = model.predict(test_data)
+        test_data_dropped = test_data.drop(['is_churn'],1).drop(['msno'],1)
+        lgb_pred = model.predict(test_data_dropped )
         test_data['is_churn'] = lgb_pred.clip(0.+1e-15, 1-1e-15)
-        testest_datat[['msno','is_churn']].to_csv('results.LGB.csv', index=False)
+        test_data[['msno','is_churn']].to_csv('results/LGB.csv', index=False)
         
     elif cmd == 6: #ensemble, merge csv and average
         #mlp = read_data('results/MLPClassifier.csv')
         xgb = read_data('results/XGBClassifier.csv') 
         cat =  read_data('results/CatBoostClassifier.csv') 
+        lgb =  read_data('results/LGB.csv') 
         merge = cat 
-        merge['tmp']= xgb['is_churn']
-        merge['avg'] = merge[['is_churn','tmp']].mean(axis=1)
+        merge['tmpxgb']= xgb['is_churn']
+        merge['tmplgb']= lgb['is_churn']
+        merge['avg'] = merge[['is_churn','tmpxgb','tmplgb']].mean(axis=1)
         merge['is_churn'] = merge['avg']
-        merge = merge.drop(['tmp','avg'], axis =1)
+        merge = merge.drop(['tmpxgb','tmplgb','avg'], axis =1)
         merge.to_csv('results/ensemble.csv',index=False)
     else:
         print("No valid commands")
