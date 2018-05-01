@@ -40,14 +40,14 @@ def normalize(df, names):
     for name in names:
            df[name] = ((df[name] - df[name].mean())/df[name].std())
     return df
-def transform_df(df):
+def reformat(df):
     df = pd.DataFrame(df)
     df = df.sort_values(by=['date'], ascending=[False])
     df = df.reset_index(drop=True)
     df = df.drop_duplicates(subset=['msno'], keep='first')
     return df
 
-def transform_df2(df):
+def reformat2(df):
     df = df.sort_values(by=['date'], ascending=[False])
     df = df.reset_index(drop=True)
     df = df.drop_duplicates(subset=['msno'], keep='first')
@@ -61,10 +61,10 @@ for df in user_log2:
     if i>35:
         if len(df)>0:
             print(df.shape)
-            p = Pool(cpu_count())
-            df = p.map(transform_df, np.array_split(df, cpu_count()))   
+            pool = Pool(cpu_count())
+            df = pool.map(reformat, np.array_split(df, cpu_count()))   
             df = pd.concat(df, axis=0, ignore_index=True).reset_index(drop=True)
-            df = transform_df2(df)
+            df = reformat2(df)
             p.close(); p.join()
             last_user_logs.append(df)
             print('...', df.shape)
@@ -72,9 +72,9 @@ for df in user_log2:
     i+=1
 
 user_log = read_data("data/user_logs_v2.csv")
-last_user_logs.append(transform_df(user_log))
+last_user_logs.append(reformat(user_log))
 last_user_logs = pd.concat(last_user_logs, axis=0, ignore_index=True).reset_index(drop=True)
-last_user_logs = transform_df2(last_user_logs)
+last_user_logs = reformat2(last_user_logs)
 
 #user_log = user_log.drop(['date', 'num_25', 'num_50', 'num_75', 'num_985', 'num_100'], axis=1)
 

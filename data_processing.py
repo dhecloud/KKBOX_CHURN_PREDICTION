@@ -94,30 +94,11 @@ df_transactions['membership_duration'] = df_transactions['membership_duration'].
 df_transactions = df_transactions.drop(['transaction_date', 'membership_expire_date'],axis=1)
 
 df_transactions = df_transactions.groupby('msno', as_index=False).mean()
-#print(df_transactions.shape)
 
 
 #memory reduction
 change_datatype(df_transactions)   
 change_datatype_float(df_transactions)
-
-#check memory usage
-'''
-mem = df_transactions.memory_usage(index=True).sum()    
-print(mem/ 1024**2,"MB")
-'''
-
-#check data types of cols
-'''
-print(df_transactions.dtypes, '\n')
-print(df_members.dtypes)
-'''
-
-#check number of cols
-'''
-length = len(df_transactions.columns)
-print(length)
-'''
 
 #new feature 'discount' to see how much discount was offered to the customer
 df_transactions['discount'] = df_transactions['plan_list_price'] - df_transactions['actual_amount_paid']
@@ -125,22 +106,13 @@ df_transactions['discount'] = df_transactions['plan_list_price'] - df_transactio
 
 #new featuer 'is_discount' to check whether the customer has availed any discount or not
 df_transactions['is_discount'] = df_transactions.discount.apply(lambda x: 1 if x > 0 else 0)
-#print(df_transactions['is_discount'].head())
-#print(df_transactions['is_discount'].unique())
 
 #new feature amount_per_day
 df_transactions['amt_per_day'] = df_transactions['actual_amount_paid'] / df_transactions['payment_plan_days']
-#print(df_transactions['amt_per_day'].head())
 
-#print(df_transactions.head())
-#print(len(df_transactions.columns), "columns")
 
 change_datatype(df_transactions)
 change_datatype_float(df_transactions)
-#mem = df_transactions.memory_usage(index=True).sum()    
-#print(mem/ 1024**2,"MB")
-#print(df_transactions.head())
-
 
 
 ''' -- members data -- '''
@@ -150,38 +122,6 @@ df_members = df_members.groupby('msno', as_index=False).mean()
 #memory reduction
 change_datatype(df_members)
 change_datatype_float(df_members)
-#print(df_members.head())
-#print(len(df_members.columns), "columns")
-
-#check memory usage
-'''
-mem = df_members.memory_usage(index=True).sum()    
-print(mem/ 1024**2,"MB")
-mem = df_members.memory_usage(index=True).sum()
-print(mem/ 1024**2,"MB")
-'''
-
-#check data types of cols
-'''
-print(df_members.dtypes, '\n')
-print(df_members.dtypes)
-'''
-
-#change date format
-'''
-date_col = ['registration_init_time']
-
-for col in date_col:
-    df_members[col] = pd.to_datetime(df_members[col], format='%Y%m%d')
-'''
-#memory reduction again
-change_datatype(df_members)
-change_datatype_float(df_members)
-#mem = df_members.memory_usage(index=True).sum()    
-#print(mem/ 1024**2,"MB")
-#print(df_members.head())
-
-
 
 ''' --  dataframes merging -- '''
 df_comb = pd.merge(df_transactions, df_members, on='msno', how='outer')
@@ -190,26 +130,12 @@ df_comb = pd.merge(df_transactions, df_members, on='msno', how='outer')
 #deleting the dataframes to save memory
 del df_transactions
 del df_members
-'''
-print(df_comb.head())
-mem = df_comb.memory_usage(index=True).sum()
-print("Memory consumed by training set  :   {} MB" .format(mem/ 1024**2))
-'''
 
 #new feature to see whether mebers have auto renewed and not cancelled at the same time, auto_renew = 1 and is_cancel = 0
 df_comb['autorenew_&_not_cancel'] = ((df_comb.is_auto_renew == 1) == (df_comb.is_cancel == 0)).astype(np.int8)
-#print(df_comb['autorenew_&_not_cancel'].unique())
 
 #new feature to predict possible churning if auto_renew = 0 and is_cancel = 1
 df_comb['notAutorenew_&_cancel'] = ((df_comb.is_auto_renew == 0) == (df_comb.is_cancel == 1)).astype(np.int8)
-#print(df_comb['notAutorenew_&_cancel'].unique())
-'''
-df_comb['registration_init_time'] = df_comb['registration_init_time'].fillna(value="00000000")
-df_comb['registration_year'] = df_comb['registration_init_time'].apply(lambda x: int(str(x)[0:4]))
-df_comb['registration_month'] = df_comb['registration_init_time'].apply(lambda x: int(str(x)[4:6]))
-df_comb['registration_date'] = df_comb['registration_init_time'].apply(lambda x: int(str(x)[6:8]))
-'''
 df_comb = df_comb.drop(['is_cancel', 'registration_init_time'], axis=1)
 df_comb.to_csv("data/df_comb.csv", index=False)
-#os.system("python scratch.py")
 
